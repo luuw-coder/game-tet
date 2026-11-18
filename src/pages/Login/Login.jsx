@@ -36,7 +36,7 @@ export default function Login() {
         <label htmlFor="name">Tên hiển thị</label>
         <input id="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={24} autoComplete="nickname" required autoFocus />
 
-        <label htmlFor="code">Mã gia đình</label>
+        <label htmlFor="code">Mã vô game</label>
         <input id="code" type="password" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" required />
 
         {error && <p className="hint error" role="alert">{error}</p>}
