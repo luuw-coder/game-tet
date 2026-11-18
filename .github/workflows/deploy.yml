@@ -18,9 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-           - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Chưa có package-lock.json nên dùng npm install. Khi đã commit lockfile, đổi thành `npm ci` và thêm `cache: npm`.
       - run: npm install
       - run: npm run build
         env:
