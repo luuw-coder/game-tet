@@ -1,0 +1,30 @@
+:root {
+  --font: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-s: 8px; --r-m: 12px; --r-l: 20px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  /* Sáng: nền xám đá, mực gần đen, một màu nhấn đỏ son */
+  --bg: #F1F2F0;
+  --surface: #FFFFFF;
+  --surface-2: #E8EAE7;
+  --ink: #1C1F1D;
+  --muted: #5F6762;
+  --line: #DADDD9;
+  --accent: #C62F2A;
+  --accent-ink: #FFFFFF;
+  --accent-soft: rgba(198, 47, 42, .08);
+  --float: 0 12px 40px -12px rgba(20, 24, 22, .28), 0 2px 6px rgba(20, 24, 22, .08);
+}
+:root[data-theme='dark'] {
+  --bg: #14171A;
+  --surface: #1D2125;
+  --surface-2: #272C31;
+  --ink: #ECEEEF;
+  --muted: #9AA2A8;
+  --line: #2D333A;
+  --accent: #F0554C;
+  --accent-ink: #14171A;
+  --accent-soft: rgba(240, 85, 76, .12);
+  --float: 0 12px 40px -12px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
