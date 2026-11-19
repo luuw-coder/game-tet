@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Hàm dùng chung ----------
+    function signedIn() { return request.auth != null; }
+
+    // Thành viên = đã tạo tài khoản bằng mã gia đình đúng (có members/{uid}).
+    function isMember() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid));
+    }
+    function incoming() { return request.resource.data; }
+    function validName(d) {
+      return d.displayName is string && d.displayName.size() >= 2 && d.displayName.size() <= 24;
+    }
+    function userPath(uid) { return /databases/$(database)/documents/users/$(uid); }
+
+    // ---------- config: chứa mã gia đình, client KHÔNG đọc/ghi được ----------
+    match /config/{docId} {
+      allow read, write: if false;
+    }
+
+    // ---------- members: cổng vào, chỉ tạo khi nhập đúng mã ----------
+    match /members/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && incoming().keys().hasOnly(['code', 'joinedAt'])
+        && incoming().joinedAt == request.time
+        && incoming().code is string
+        && incoming().code == get(/databases/$(database)/documents/config/access).data.code;
+      allow update, delete: if false;
+    }
+
+    // ---------- users: hồ sơ, chỉ chủ tài khoản đọc/ghi ----------
+    match /users/{uid} {
+      allow read: if isMember() && request.auth.uid == uid;
+
+      // Tên đăng nhập phải khớp email đăng nhập của chính tài khoản này.
+      allow create: if isMember() && request.auth.uid == uid
+        && incoming().keys().hasOnly(['displayName', 'username', 'createdAt', 'lastSeen'])
+        && validName(incoming())
+        && incoming().username is string
+        && incoming().username.matches('^[a-z0-9_]{3,20}$')
+        && request.auth.token.email == incoming().username + '@gametet.app'
+        && incoming().createdAt == request.time
+        && incoming().lastSeen == request.time;
+
+      // username không được đổi sau khi tạo.
+      allow update: if isMember() && request.auth.uid == uid
+        && incoming().diff(resource.data).affectedKeys().hasOnly(['displayName', 'lastSeen', 'lastMessageAt'])
+        && validName(incoming())
+        && (!incoming().diff(resource.data).affectedKeys().hasAny(['lastSeen'])
+            || incoming().lastSeen == request.time)
+        && (!incoming().diff(resource.data).affectedKeys().hasAny(['lastMessageAt'])
+            || incoming().lastMessageAt == request.time);
+
+      allow delete: if false;
+    }
+
+    // ---------- messages: chat chung của gia đình ----------
+    match /messages/{messageId} {
+      allow read: if isMember();
+
+      allow create: if isMember()
+        && incoming().keys().hasOnly(['senderId', 'senderName', 'content', 'createdAt'])
+        && incoming().senderId == request.auth.uid
+        && incoming().senderName == get(userPath(request.auth.uid)).data.displayName
+        && incoming().content is string
+        && incoming().content.size() <= 500
+        && incoming().content.matches('.*\\S.*')
+        && incoming().createdAt == request.time
+        && request.time > get(userPath(request.auth.uid)).data.get('lastMessageAt', timestamp.date(2000, 1, 1)) + duration.value(1, 's')
+        && getAfter(userPath(request.auth.uid)).data.lastMessageAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    // ---------- history: lịch sử ván chơi, mỗi người chỉ thấy của mình ----------
+    match /history/{uid}/entries/{entryId} {
+      allow read: if isMember() && request.auth.uid == uid;
+      allow create: if isMember() && request.auth.uid == uid
+        && incoming().keys().hasOnly(['gameId', 'result', 'playedAt'])
+        && incoming().gameId is string && incoming().gameId.size() <= 40
+        && incoming().result in ['win', 'lose', 'draw']
+        && incoming().playedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ---------- achievements: thành tích, mỗi người chỉ thấy của mình ----------
+    match /achievements/{uid}/items/{itemId} {
+      allow read: if isMember() && request.auth.uid == uid;
+      allow create: if isMember() && request.auth.uid == uid
+        && incoming().keys().hasOnly(['title', 'unlockedAt'])
+        && incoming().title is string && incoming().title.size() <= 60
+        && incoming().unlockedAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ---------- games: danh mục, chỉ đọc ----------
+    match /games/{gameId} {
+      allow read: if isMember();
+      allow write: if false;
+    }
+
+    // ---------- rooms: CHƯA mở ghi vì chưa có gameplay ----------
+    match /rooms/{roomId} {
+      allow read: if isMember();
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
