@@ -53,7 +53,7 @@ export default function Login() {
           <>
             <label htmlFor="displayName">Tên hiển thị</label>
             <input id="displayName" value={f.displayName} onChange={set('displayName')} maxLength={24} autoComplete="nickname" required />
-            <label htmlFor="familyCode">Mã gia đình</label>
+            <label htmlFor="familyCode">Mã vào game</label>
             <input id="familyCode" type="password" value={f.familyCode} onChange={set('familyCode')} autoComplete="off" required />
           </>
         )}
